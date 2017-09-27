@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block email %}
+<div class="container">
+
+      <div class="starter-template">
+        <div class="row" style="height:100vh;">
+                <div class="col-md-4 col-md-offset-4" style="margin-top:10vh;">
+                        <form action"emailop" method="POST">
+                                <div class="form-group text-center">
+                                        <label style="font-weight:300; font-size:36px;">Make a connection</label>
+                                        <br /><br />
+                                        <input type="text" class="form-control" id="emailid1" name="emailid1" placeholder="Diagnosis">
+                                        <br />
+                                        <input type="text" class="form-control" id="emailid2" name="emailid2" placeholder="Doctor name">
+                                        <br />
+                                        <input type="text" class="form-control" id="emailid3" name="emailid3" placeholder="Hospital name">
+                                        <br />
+                                        <button type="submit" value="Send" name="emailid-container" class="btn btn-default id-submit">Submit</button>
+                                </div>
+                        </form>
+                </div>
+        </div>
+      </div>
+
+    </div>
+
+{% endblock %}
