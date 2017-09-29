@@ -21,7 +21,7 @@ def callelastic(queries):
     setit = []
 
     x = []
-    result1 = helpers.scan(es, index="final_doctor_data2",query={\
+    result1 = helpers.scan(es, index="final_doctor_data",query={\
                                     "query":{\
                                     "match":{\
                                     "_type":{\

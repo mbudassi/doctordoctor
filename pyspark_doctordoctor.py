@@ -13,7 +13,7 @@ def doctor_json(x):
     except:
         return ('0','0')
 
-def little_json(x):
+def diagnosis_json(x):
     try:
         y = json.loads(x)
         return (str(y['participant'][0]['individual']),str(y['diagnosis'][0]['condition']))
@@ -61,9 +61,9 @@ def main(*argv):
     bucket = conn.get_bucket(bucket_name)
 
     for k in bucket.list():
-        if 'mockdata4/' in k.key:
+        if 'mockdata2/' in k.key:
             allfiles.append(k.key)
-        if 'mockdoctor5/' in k.key:
+        if 'mockdoctor2/' in k.key:
             doctorfile = k.key
 
     if not doctorfile:
@@ -77,12 +77,12 @@ def main(*argv):
                                  'org.apache.hadoop.io.Text',\
                                  'org.apache.hadoop.io.LongWritable')
 
-        rdd_encounters = raw_data.map(lambda x: (little_json(x[1]),1)).reduceByKey(add)
+        rdd_encounters = raw_data.map(lambda x: (diagnosis_json(x[1]),1)).reduceByKey(add)
 
         from_es_list = []
 
         try:
-            result = helpers.scan(es,index="prelim_doc_assess2")
+            result = helpers.scan(es,index="prelim_doc_assess")
 
             for i in result:
                 j = i['_source']
@@ -121,7 +121,7 @@ def main(*argv):
             l = {}
             l.update({"Practitioner":j['Practitioner']})
             l.update({"Number of patients":j['Number of patients']})
-            l.update({"_index": "prelim_doc_assess2"})
+            l.update({"_index": "prelim_doc_assess"})
             l.update({"_type": j['Diagnosis']})
             l.update({"_id": k})
             actions.append(l)
@@ -136,7 +136,7 @@ def main(*argv):
 
     rdd_practitioners = doctor_data.map(lambda x:doctor_json(x[1]))
 
-    result = helpers.scan(es,index="prelim_doc_assess2")
+    result = helpers.scan(es,index="prelim_doc_assess")
 
     from_es_list = []
     for i in result:
@@ -172,7 +172,7 @@ def main(*argv):
         l.update({"E-mail":j['E-mail']})
         l.update({"Hospital":j['Hospital']})
         l.update({"Number of patients":j['Number of patients']})
-        l.update({"_index": "final_doctor_data2"})
+        l.update({"_index": "final_doctor_data"})
         l.update({"_type": j['Diagnosis']})
         l.update({"_id": k})
         actions.append(l)
