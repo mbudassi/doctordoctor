@@ -46,7 +46,7 @@ def callelastic(queries):
     setit+=x
 
     y = []
-    result2 = helpers.scan(es, index="final_doctor_data2",query={\
+    result2 = helpers.scan(es, index="final_doctor_data",query={\
                                     "query": {\
                                     "fuzzy":{\
                                     "Full name": queries[1] }}})
@@ -63,7 +63,7 @@ ource']['Hospital'],i['_source']['E-mail']))
     setit+=y
 
     z = []
-    result3 = helpers.scan(es, index="final_doctor_data2",query={\
+    result3 = helpers.scan(es, index="final_doctor_data",query={\
                                     "query": {\
                                     "fuzzy":{\
                                     "Hospital": str(queries[2]) }}})

@@ -39,8 +39,8 @@ def main(*argv):
 
     es_fields = StructType([
         StructField("Practitioner", StringType(), True),
-        StructField("Number of patients", IntegerType(), True),
-        StructField("Diagnosis", StringType(), True)
+        StructField("Diagnosis", StringType(), True),
+        StructField("Number of patients", IntegerType(), True)
     ])
 
     bucket_name = "ddrum-s3"
@@ -77,7 +77,8 @@ def main(*argv):
                                  'org.apache.hadoop.io.Text',\
                                  'org.apache.hadoop.io.LongWritable')
 
-        rdd_encounters = raw_data.map(lambda x: (diagnosis_json(x[1]),1)).reduceByKey(add)
+        rdd_encounters = raw_data.map(lambda x: (diagnosis_json(x[1]),1))\
+                                 .reduceByKey(add)
 
         from_es_list = []
 
@@ -88,6 +89,9 @@ def main(*argv):
                 j = i['_source']
                 j.update({"Diagnosis":i['_type']}) 
                 from_es_list.append(json.dumps(j))
+
+            es.indices.delete(index="prelim_doc_assess")
+
         except:
             pass
 
@@ -98,7 +102,7 @@ def main(*argv):
                                    .json(from_es_rdd, es_fields)
             
             openup = from_es_df.rdd\
-                               .map(lambda x:((x[0],x[2]),x[1]))
+                               .map(lambda x:((x[0],x[1]),x[2]))
 
             rdd_encounters = rdd_encounters.union(openup)\
                                            .reduceByKey(add)
@@ -136,51 +140,53 @@ def main(*argv):
 
     rdd_practitioners = doctor_data.map(lambda x:doctor_json(x[1]))
 
-    result = helpers.scan(es,index="prelim_doc_assess")
+    mapping = es.indices.get_mapping(index="prelim_doc_assess")
 
-    from_es_list = []
-    for i in result:
-        j = i['_source']
-        j.update({"Diagnosis":i['_type']}) 
-        from_es_list.append(json.dumps(j))
+    for ii in mapping['prelim_doc_assess']['mappings']:
 
-    from_es_rdd = sc.parallelize(from_es_list, 54)
-    from_es_df = sqlContext.read\
-                           .json(from_es_rdd, es_fields)
+        result = helpers.scan(es,index="prelim_doc_assess", doc_type=ii)
+
+        from_es_list = []
+        for i in result:
+            j = i['_source']
+            j.update({"Diagnosis":i['_type']}) 
+            from_es_list.append(json.dumps(j))
+
+        from_es_rdd = sc.parallelize(from_es_list, 54)
+        from_es_df = sqlContext.read\
+                               .json(from_es_rdd, es_fields)
     
-    fullnames = from_es_df.rdd\
-                          .map(lambda x: (x[0],[x[1],x[2]]))\
-                          .join(rdd_practitioners)\
-                          .map(lambda x:[x[0],x[1][0][0],x[1][1][0],x[1][1][1],x[1][1][2],x[1][0][1]])
+        fullnames = from_es_df.rdd\
+                              .map(lambda x: (x[0],[x[1],x[2]]))\
+                              .join(rdd_practitioners)\
+                              .map(lambda x:[x[0],x[1][0][1],x[1][1][0],x[1][1][1],x[1][1][2],x[1][0][0]])
 
-    es_newoutput = sqlContext.createDataFrame(fullnames)\
-                             .select(col('_1').alias('Practitioner'),col('_2').alias("Number of patients"),col('_3').alias("Full name"),col('_4').alias("E-mail"),col('_5').alias('Hospital'),col('_6').alias('Diagnosis'))\
-                             .toJSON()\
-                             .collect()
+        es_newoutput = sqlContext.createDataFrame(fullnames)\
+                                 .select(col('_1').alias('Practitioner'),col('_2').alias("Number of patients"),col('_3').alias("Full name"),col('_4').alias("E-mail"),col('_5').alias('Hospital'),col('_6').alias('Diagnosis'))\
+                                 .toJSON()\
+                                 .collect()
 
-    actions = []
-    for k in range(len(es_newoutput)):
+        actions = []
+        for k in range(len(es_newoutput)):
 
-        if k and not k%1000:
+            if k and not k%1000:
+                helpers.bulk(es, actions)
+                actions = []
+
+            j = json.loads(es_newoutput[k])
+            l = {}
+            l.update({"Practitioner":j['Practitioner']})
+            l.update({"Full name":j['Full name']})
+            l.update({"E-mail":j['E-mail']})
+            l.update({"Hospital":j['Hospital']})
+            l.update({"Number of patients":j['Number of patients']})
+            l.update({"_index": "final_doctor_data"})
+            l.update({"_type": j['Diagnosis']})
+            l.update({"_id": k})
+            actions.append(l)
+            
+        if actions:
             helpers.bulk(es, actions)
-            actions = []
-
-        j = json.loads(es_newoutput[k])
-        l = {}
-        l.update({"Practitioner":j['Practitioner']})
-        l.update({"Full name":j['Full name']})
-        l.update({"E-mail":j['E-mail']})
-        l.update({"Hospital":j['Hospital']})
-        l.update({"Number of patients":j['Number of patients']})
-        l.update({"_index": "final_doctor_data"})
-        l.update({"_type": j['Diagnosis']})
-        l.update({"_id": k})
-        actions.append(l)
-
-    if actions:
-        helpers.bulk(es, actions)
-
-    #es.indices.delete(index="prelim_doc_assess")
 
 if __name__=="__main__":
     main(*sys.argv)
