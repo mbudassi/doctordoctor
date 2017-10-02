@@ -25,9 +25,14 @@ def main(*argv):
     es_access_key = os.getenv('ES_ACCESS_KEY_ID', 'default')
     es_secret_access_key = os.getenv('ES_SECRET_ACCESS_KEY', 'default')
 
+    master_internal_ip = os.getenv('MASTER_INTERNAL_IP', 'default')
+    worker1_internal_ip = os.getenv('WORKER1_INTERNAL_IP', 'default')
+    worker2_internal_ip = os.getenv('WORKER2_INTERNAL_IP', 'default')
+    worker3_internal_ip = os.getenv('WORKER3_INTERNAL_IP', 'default')
+
     try:
         es = Elasticsearch(
-            ["10.0.0.14", "10.0.0.4", "10.0.0.8", "10.0.0.11"],
+            [master_internal_ip, worker1_internal_ip, worker2_internal_ip, worker3_internal_ip],
             http_auth=(es_access_key, es_secret_access_key),
             port=9200,
             sniff_on_start=True
@@ -42,8 +47,6 @@ def main(*argv):
         StructField("Diagnosis", StringType(), True),
         StructField("Number of patients", IntegerType(), True)
     ])
-
-    bucket_name = "ddrum-s3"
 
     aws_access_key = os.getenv('AWS_ACCESS_KEY_ID', 'default')
     aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY', 'default')
@@ -60,11 +63,12 @@ def main(*argv):
     conn = boto.connect_s3(aws_access_key, aws_secret_access_key)
     bucket = conn.get_bucket(bucket_name)
 
-    for k in bucket.list():
-        if 'mockdata2/' in k.key:
-            allfiles.append(k.key)
-        if 'mockdoctor2/' in k.key:
-            doctorfile = k.key
+    for i in buckets:
+        for j in i.list():
+            if 'mockdata2/' in j.key:
+                allfiles.append(i.name + '/' + j.key)
+            if 'mockdoctor2/' in j.key:
+                doctorfile = i.name + '/' + j.key
 
     if not doctorfile:
         print "ERROR: NO DOCTOR FILE FOUND"
@@ -72,7 +76,7 @@ def main(*argv):
 
     for mockdatafile in allfiles:
 
-        raw_data = sc.hadoopFile('s3a://'+bucket_name +'/'+mockdatafile,\
+        raw_data = sc.hadoopFile('s3a://'+mockdatafile,\
                                  'org.apache.hadoop.mapred.TextInputFormat',\
                                  'org.apache.hadoop.io.Text',\
                                  'org.apache.hadoop.io.LongWritable')
@@ -90,13 +94,14 @@ def main(*argv):
                 j.update({"Diagnosis":i['_type']}) 
                 from_es_list.append(json.dumps(j))
 
-            es.indices.delete(index="prelim_doc_assess")
-
         except:
             pass
 
         if from_es_list:
-                    
+            
+            if es.indices.exists(index="prelim_doc_assess"):
+                es.indices.delete(index="prelim_doc_assess")
+        
             from_es_rdd = sc.parallelize(from_es_list, 54)
             from_es_df = sqlContext.read\
                                    .json(from_es_rdd, es_fields)
@@ -122,18 +127,17 @@ def main(*argv):
                 actions = []
 
             j = json.loads(es_newoutput[k])
-            l = {}
-            l.update({"Practitioner":j['Practitioner']})
-            l.update({"Number of patients":j['Number of patients']})
-            l.update({"_index": "prelim_doc_assess"})
-            l.update({"_type": j['Diagnosis']})
-            l.update({"_id": k})
-            actions.append(l)
+            l = j['Diagnosis']}
+            j.pop('Diagnosis')
+            j.update({"_index": "prelim_doc_assess"})
+            j.update({"_type": l})
+            j.update({"_id": k})
+            actions.append(j)
 
         if actions:
             helpers.bulk(es, actions)
 
-    doctor_data = sc.hadoopFile('s3a://'+ bucket_name +'/'+ doctorfile ,\
+    doctor_data = sc.hadoopFile('s3a://'+ doctorfile ,\
                                  'org.apache.hadoop.mapred.TextInputFormat',\
                                  'org.apache.hadoop.io.Text',\
                                  'org.apache.hadoop.io.LongWritable')
@@ -174,16 +178,11 @@ def main(*argv):
                 actions = []
 
             j = json.loads(es_newoutput[k])
-            l = {}
-            l.update({"Practitioner":j['Practitioner']})
-            l.update({"Full name":j['Full name']})
-            l.update({"E-mail":j['E-mail']})
-            l.update({"Hospital":j['Hospital']})
-            l.update({"Number of patients":j['Number of patients']})
-            l.update({"_index": "final_doctor_data"})
-            l.update({"_type": j['Diagnosis']})
-            l.update({"_id": k})
-            actions.append(l)
+            j.pop('Diagnosis')
+            j.update({"_index": "final_doctor_data"})
+            j.update({"_type": ii)
+            j.update({"_id": k})
+            actions.append(j)
             
         if actions:
             helpers.bulk(es, actions)

@@ -12,4 +12,4 @@ def query_post():
     query2 = request.form["query2"]
     query3 = request.form["query3"]
     responselist = callelastic([query1, query2, query3])
-    return render_template("queryresponse.html", array=responselist)
+    return render_template("queryresponse.html", array1=responselist[0], array2=responselist[1])
