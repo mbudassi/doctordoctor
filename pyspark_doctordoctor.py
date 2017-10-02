@@ -61,7 +61,7 @@ def main(*argv):
     doctorfile = 0
     allfiles = []
     conn = boto.connect_s3(aws_access_key, aws_secret_access_key)
-    bucket = conn.get_bucket(bucket_name)
+    buckets = conn.get_all_buckets()
 
     for i in buckets:
         for j in i.list():
@@ -127,7 +127,7 @@ def main(*argv):
                 actions = []
 
             j = json.loads(es_newoutput[k])
-            l = j['Diagnosis']}
+            l = j['Diagnosis']
             j.pop('Diagnosis')
             j.update({"_index": "prelim_doc_assess"})
             j.update({"_type": l})
@@ -180,7 +180,7 @@ def main(*argv):
             j = json.loads(es_newoutput[k])
             j.pop('Diagnosis')
             j.update({"_index": "final_doctor_data"})
-            j.update({"_type": ii)
+            j.update({"_type": ii})
             j.update({"_id": k})
             actions.append(j)
             
