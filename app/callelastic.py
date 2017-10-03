@@ -1,3 +1,5 @@
+#This is the elasticsearch module that the flask webapp accesses to answer queries
+
 import os
 from elasticsearch import Elasticsearch, helpers
 
@@ -5,14 +7,17 @@ def callelastic(queries):
 
     probable_disease = 0
 
+    #Get elasticsearch credentials from environmental variables
     es_access_key = os.getenv('ES_ACCESS_KEY_ID', 'default')
     es_secret_access_key = os.getenv('ES_SECRET_ACCESS_KEY', 'default')
 
+    #Get elasticsearch internal IP addresses from environmental variables
     master_internal_ip = os.getenv('MASTER_INTERNAL_IP', 'default')
     worker1_internal_ip = os.getenv('WORKER1_INTERNAL_IP', 'default')
     worker2_internal_ip = os.getenv('WORKER2_INTERNAL_IP', 'default')
     worker3_internal_ip = os.getenv('WORKER3_INTERNAL_IP', 'default')
 
+    #Open a connection to Elasticsearch
     try:
         es = Elasticsearch(
             [master_internal_ip, worker1_internal_ip, worker2_internal_ip, worker3_internal_ip],
@@ -24,9 +29,11 @@ def callelastic(queries):
     except Exception as ex:
         print "Error:", ex
 
+    #groupit collects lists. setit creates one long list
     groupit = []
     setit = []
 
+    #The first search term: Diagnosis
     x = []
     result1 = helpers.scan(es, index="final_doctor_data",query={\
                                     "query":{\
@@ -40,6 +47,7 @@ def callelastic(queries):
 
     try:
         for i in result1:
+            #Set the confirmed diagnosis to display alonside user input (So that the user can see what they typed and what the app understood)
             if not probable_disease:
                 probable_disease = i['_type']
 
@@ -51,6 +59,7 @@ def callelastic(queries):
     groupit.append(x)
     setit+=x
 
+    #The second search term: Doctor name
     y = []
     result2 = helpers.scan(es, index="final_doctor_data",query={\
                                     "query": {\
@@ -67,6 +76,7 @@ def callelastic(queries):
     groupit.append(y)
     setit+=y
 
+    #The third search term: Hospital name
     z = []
     result3 = helpers.scan(es, index="final_doctor_data",query={\
                                     "query": {\
@@ -85,17 +95,20 @@ def callelastic(queries):
 
     full_setit = set(setit)
 
+    #Find the common entries within the three lists returned by the three queries. If a list is empty, ignore it
     for i in groupit:
         if full_setit.intersection(set(i)):
             full_setit = full_setit.intersection(set(i))
 
     returnit = list(full_setit)
 
+    #Sort the list, maximum element first
     returnit.sort(key=lambda x:x[1], reverse=True)
 
     fulltitles = []
     fulloutput = []
 
+    #Create return value for Flask app. Diagnosis is only returned if it was part of the original query
     if probable_disease:
         fulltitles.append("Disease Query: " + queries[0])
         fulltitles.append("Searching Disease: " + probable_disease)
@@ -119,4 +132,5 @@ def callelastic(queries):
         else:
             fulloutput.append("NONE")
 
+    #fulltitles begins the results list. fulloutput contain the actual results 
     return [fulltitles, fulloutput]

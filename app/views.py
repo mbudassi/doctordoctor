@@ -1,6 +1,11 @@
+#The views module for the flask webapp.
+
 from callelastic import callelastic
 from flask import render_template, request
 from app import app
+
+#App contains two pages: Query forms and Query results
+#base.html provides webpage header with title (linked to query form page) and "about" link, which connects to presentation
 
 @app.route('/')
 def query():

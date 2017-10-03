@@ -1,6 +1,10 @@
-import random
+#This is a basic python script to write out mock data, according to the Argonaut FHIR standard
 
-yy = open("/home/ubuntu/baby-names2.csv","r")
+import random, os
+
+#A openly available list of common baby names was used to generate fake names. Kept in home directory
+homedir = os.getenv('HOME', 'default')
+yy = open(homedir + "/baby-names2.csv","r")
 
 kk = -1
 
@@ -18,25 +22,26 @@ for ii in yy:
     
     mm.append([jj[1][1:-1],jj[3]])
 
+#Generate 55000 distinct full names
 for ii in range(55000):
-    oo = mm[random.randint(0,len(mm))]
-    pp = mm[random.randint(0,len(mm))]
+    oo = mm[random.randint(0,len(mm)-1)]
+    pp = mm[random.randint(0,len(mm)-1)]
 
     qq = oo[0] + ' ' + pp[0]
     if qq not in nn:
         nn.append([qq,oo[1][1:-1]])
 
 kk = 0
-        
+
+#The first 5000 are for doctors, the others are for patients        
 for ii in nn:
     if kk < 5000:
-        print "Dr. " + ii[0] + ', ' + ii[1]
         rr.append(ii[0])
     else:
-        print ii[0] + ', ' + ii[1]
         ss.append(ii[0])
     kk += 1
 
+#Hospital names
 ttt = ["bellevue hospital center",
 "brooklyn hospital center",
 "gracie square hospital",
@@ -58,8 +63,10 @@ ttt = ["bellevue hospital center",
 "montefiore medical center",
 "north central bronx hospital"]
 
+#Four possible suffixes for fake email addresses
 uuu = ['@insight.net','@data.com','@science.org','@engineering.gov']
 
+#Thirty diseases
 tt = ["stomach ache",
       "head ache",
       "neck pain",
@@ -92,11 +99,12 @@ tt = ["stomach ache",
       "pneumonia"
       ]
 
-x = open('/home/ubuntu/fakepractitioners.json','w')
+#Write practitioner information
+x = open(homedir + '/fakepractitioners.json','w')
 
 for ii in range(len(rr)):
 
-    #THIS IS THE VALUE
+    #THIS IS THE ID VALUE
     a = "\"" + str(ii) + "\""
     b ="\"void\""
 
@@ -140,7 +148,8 @@ for ii in range(len(rr)):
 
 x.close()
 
-x = open('/home/ubuntu/fakepatients.json','w')
+#Write patient information
+x = open(homedir +'/fakepatients.json','w')
 
 for ii in range(len(ss)):
 
@@ -218,12 +227,15 @@ for ii in range(len(ss)):
 
 x.close()
 
+#Divide encounter data into 30 files
 allofit = 30
 
+#Write encounter information
 for thisone in range(allofit):
 
-    x = open('/home/ubuntu/fakedata_'+str(thisone)+'.json','w')
+    x = open(homedir + '/fakedata_'+str(thisone)+'.json','w')
  
+    #6000000 lines per encounter data file
     for ii in range(6000000):
 
         #THIS IS THE VALUE
