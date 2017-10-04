@@ -217,7 +217,6 @@ def main(*argv):
 
             #Remove diagnosis entry in JSON strings, store it as document type instead. Include permanent index name and elasticsearch ID number
             j = json.loads(es_newoutput[k])
-            j.pop('Diagnosis')
             j.update({"_index": "final_doctor_data"})
             j.update({"_type": ii})
             j.update({"_id": k})
