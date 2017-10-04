@@ -1,11 +1,15 @@
 #This is the elasticsearch module that the flask webapp accesses to answer queries
 
-import os
+import os, logging
 from elasticsearch import Elasticsearch, helpers
 
 def callelastic(queries):
 
     probable_disease = 0
+
+    #Setup logging. Write log to home directory
+    homedir = os.getenv('HOME', 'default')
+    logging.basicConfig(filename=homedir +'/callelastic.log',filemode='w', level=logging.DEBUG)
 
     #Get elasticsearch credentials from environmental variables
     es_access_key = os.getenv('ES_ACCESS_KEY_ID', 'default')
@@ -25,9 +29,10 @@ def callelastic(queries):
             port=9200,
             sniff_on_start=True
         )
-        print "Connected"
+        logging.debug("Elasticsearch Connected")
     except Exception as ex:
-        print "Error:", ex
+        logging.debug("Error:", ex)
+        return
 
     #groupit collects lists. setit creates one long list
     groupit = []

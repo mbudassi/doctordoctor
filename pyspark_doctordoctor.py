@@ -4,7 +4,7 @@ from pyspark import SparkContext, SparkConf
 from pyspark.sql import SQLContext
 from pyspark.sql.functions import col
 from operator import add
-import os, json, sys, boto
+import os, json, sys, boto, logging
 from elasticsearch import Elasticsearch, helpers
 from pyspark.sql.types import *
 
@@ -25,6 +25,10 @@ def diagnosis_json(x):
         return ('0','0')
 
 def main(*argv):
+
+    #Setup logging. Write log to home directory
+    homedir = os.getenv('HOME', 'default')
+    logging.basicConfig(filename=homedir +'/pyspark_doctordoctor.log',filemode='w', level=logging.DEBUG)
 
     #Get elasticsearch credentials from environmental variables
     es_access_key = os.getenv('ES_ACCESS_KEY_ID', 'default')
@@ -48,9 +52,9 @@ def main(*argv):
             port=9200,
             sniff_on_start=True
         )
-        print "Connected"
+        logging.debug("Elasticsearch Connected")
     except Exception as ex:
-        print "Error:", ex
+        logging.debug("Error:", ex)
         return
 
     #Create a schema for reading JSON data back from elasticsearch database
@@ -88,7 +92,7 @@ def main(*argv):
                 doctorfile = i.name + '/' + j.key
 
     if not doctorfile:
-        print "ERROR: NO DOCTOR FILE FOUND"
+        logging.debug("ERROR: NO DOCTOR FILE FOUND")
         return
 
     #Iterate through practitioner files 
