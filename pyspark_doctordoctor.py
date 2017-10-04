@@ -60,6 +60,11 @@ def main(*argv):
         StructField("Number of patients", IntegerType(), True)
     ])
 
+    trunc_fields = StructType([
+        StructField("Practitioner", StringType(), True),
+        StructField("Number of patients", IntegerType(), True)
+    ])
+
     #Start sparkcontext and sqlcontext. AWS credentials are entered here, and executor memory is increased to 5GB
     conf = SparkConf().setAppName("doctordoctor")
     SparkContext.setSystemProperty('spark.executor.memory', '5g')
@@ -120,7 +125,7 @@ def main(*argv):
             if es.indices.exists(index="prelim_doc_assess"):
                 es.indices.delete(index="prelim_doc_assess")
         
-            #Read in the strings as a dataframe, using the schema defined above
+            #Read in the strings as a dataframe, using the es-schema defined above. Parallelization is set to include 3x number of total cores in cluster
             from_es_rdd = sc.parallelize(from_es_list, 54)
             from_es_df = sqlContext.read\
                                    .json(from_es_rdd, es_fields)
@@ -180,27 +185,25 @@ def main(*argv):
 
         result = helpers.scan(es,index="prelim_doc_assess", doc_type=ii)
 
-        #Read data in elasticsearch in as a list of strings. Include diagnosis, stored as the document name, in JSON string
+        #Read data in elasticsearch in as a list of strings. Diagnosis already specified by current iteration
         from_es_list = []
         for i in result:
-            j = i['_source']
-            j.update({"Diagnosis":i['_type']}) 
-            from_es_list.append(json.dumps(j))
+            from_es_list.append(json.dumps(i['_source']))
 
-        #Read in the strings as a dataframe, using the schema defined above
+        #Read in the strings as a dataframe, using the schema without diagnosis field
         from_es_rdd = sc.parallelize(from_es_list, 54)
         from_es_df = sqlContext.read\
-                               .json(from_es_rdd, es_fields)
+                               .json(from_es_rdd, trunc_fields)
     
         #Join id/diagnosis count information with practitioner information, and map it for conversion to dataframe
         fullnames = from_es_df.rdd\
-                              .map(lambda x: (x[0],[x[1],x[2]]))\
+                              .map(lambda x: (x[0],x[1]) )\
                               .join(rdd_practitioners)\
-                              .map(lambda x:[x[0],x[1][0][1],x[1][1][0],x[1][1][1],x[1][1][2],x[1][0][0]])
+                              .map(lambda x:[x[0],x[1][0],x[1][1][0],x[1][1][1],x[1][1][2]] )
 
         #convert to dataframe, convert to JSON, and convert to JSON strings
         es_newoutput = sqlContext.createDataFrame(fullnames)\
-                                 .select(col('_1').alias('Practitioner'),col('_2').alias("Number of patients"),col('_3').alias("Full name"),col('_4').alias("E-mail"),col('_5').alias('Hospital'),col('_6').alias('Diagnosis'))\
+                                 .select(col('_1').alias('Practitioner'),col('_2').alias("Number of patients"),col('_3').alias("Full name"),col('_4').alias("E-mail"),col('_5').alias('Hospital'))\
                                  .toJSON()\
                                  .collect()
 
