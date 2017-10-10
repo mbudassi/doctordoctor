@@ -130,7 +130,7 @@ def main(*argv):
                 es.indices.delete(index="prelim_doc_assess")
         
             #Read in the strings as a dataframe, using the es-schema defined above. Parallelization is set to include 3x number of total cores in cluster
-            from_es_rdd = sc.parallelize(from_es_list, 54)
+            from_es_rdd = sc.parallelize(from_es_list, 18)
             from_es_df = sqlContext.read\
                                    .json(from_es_rdd, es_fields)
             
@@ -195,7 +195,7 @@ def main(*argv):
             from_es_list.append(json.dumps(i['_source']))
 
         #Read in the strings as a dataframe, using the schema without diagnosis field
-        from_es_rdd = sc.parallelize(from_es_list, 54)
+        from_es_rdd = sc.parallelize(from_es_list, 18)
         from_es_df = sqlContext.read\
                                .json(from_es_rdd, trunc_fields)
     
