@@ -1,3 +1,5 @@
+#This first draft makes the distinction between doctor visits and patients seen
+
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SQLContext
 from pyspark.sql.functions import col
