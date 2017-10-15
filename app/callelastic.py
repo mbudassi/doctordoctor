@@ -68,8 +68,13 @@ def callelastic(queries):
     y = []
     result2 = helpers.scan(es, index="final_doctor_data",query={\
                                     "query": {\
-                                    "fuzzy":{\
-                                             "Full name": queries[1].lower() }}})
+                                    "match":{\
+                                    "Full name":{\
+                                    "query": queries[1].lower(),\
+                                    "boost" : 1.0,\
+                                    "fuzziness" : 2,\
+                                    "prefix_length" : 0,\
+                                    "max_expansions": 50}}}})
 
     try:
         for i in result2:
@@ -85,8 +90,13 @@ def callelastic(queries):
     z = []
     result3 = helpers.scan(es, index="final_doctor_data",query={\
                                     "query": {\
-                                    "fuzzy":{\
-                                             "Hospital": queries[2].lower() }}})
+                                    "match":{\
+                                    "Hospital":{\
+                                    "query": queries[2].lower(),\
+                                    "boost" : 1.0,\
+                                    "fuzziness" : 1,\
+                                    "prefix_length" : 0,\
+                                    "max_expansions": 50}}}})
 
     try:
         for i in result3:
